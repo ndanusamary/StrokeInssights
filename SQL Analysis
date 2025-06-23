@@ -1,0 +1,160 @@
+# 🧠 Stroke Dataset SQL Analysis
+
+This project performs descriptive, diagnostic, and advanced analysis on a stroke dataset to uncover risk factors and patterns that can inform public health strategies.
+
+-- Dataset Preview
+SELECT TOP (1000) 
+    [id], [gender], [age], [hypertension], [heart_disease], [ever_married],
+    [work_type], [Residence_type], [avg_glucose_level], [bmi], 
+    [smoking_status], [stroke]
+FROM [Project].[dbo].[stroke_data];
+
+-- Descriptive Analysis
+
+-- 1. What is the overall stroke rate in the dataset?
+SELECT 
+    COUNT(*) AS total_patients,
+    SUM(CAST(stroke AS INT)) AS total_stroke_cases,
+    ROUND(100.0 * SUM(CAST(stroke AS INT)) / COUNT(*), 2) AS stroke_rate_percent
+FROM stroke_data;
+
+-- 2. What is the distribution of gender, age groups, and residence types?
+-- Gender Distribution
+SELECT gender, COUNT(*) AS count
+FROM stroke_data
+GROUP BY gender;
+
+-- Residence Type Distribution
+SELECT Residence_type, COUNT(*) AS count
+FROM stroke_data
+GROUP BY Residence_type;
+
+-- Age Group Distribution
+SELECT 
+    CASE 
+        WHEN age BETWEEN 0 AND 18 THEN '0-18'
+        WHEN age BETWEEN 19 AND 35 THEN '19-35'
+        WHEN age BETWEEN 36 AND 50 THEN '36-50'
+        WHEN age BETWEEN 51 AND 65 THEN '51-65'
+        ELSE '66+' 
+    END AS age_group,
+    COUNT(*) AS count
+FROM stroke_data
+GROUP BY 
+    CASE 
+        WHEN age BETWEEN 0 AND 18 THEN '0-18'
+        WHEN age BETWEEN 19 AND 35 THEN '19-35'
+        WHEN age BETWEEN 36 AND 50 THEN '36-50'
+        WHEN age BETWEEN 51 AND 65 THEN '51-65'
+        ELSE '66+' 
+    END;
+
+-- 3. How many patients have hypertension or heart disease?
+SELECT 
+    SUM(CAST(hypertension AS INT)) AS total_with_hypertension,
+    SUM(CAST(heart_disease AS INT)) AS total_with_heart_disease
+FROM stroke_data;
+
+-- 4. What is the average BMI and glucose level by gender?
+SELECT 
+    gender,
+    ROUND(AVG(TRY_CAST(bmi AS FLOAT)), 2) AS avg_bmi,
+    ROUND(AVG(avg_glucose_level), 2) AS avg_glucose
+FROM stroke_data
+GROUP BY gender;
+
+-- 5. What percentage of people in each work type category had a stroke?
+SELECT 
+    work_type,
+    COUNT(*) AS total,
+    SUM(CAST(stroke AS INT)) AS stroke_cases,
+    ROUND(100.0 * SUM(CAST(stroke AS INT)) / COUNT(*), 2) AS stroke_rate_percent
+FROM stroke_data
+GROUP BY work_type;
+
+-- Diagnostic Analysis
+
+-- 6. Is there a correlation between smoking status and stroke occurrences?
+SELECT 
+    smoking_status,
+    COUNT(*) AS total,
+    SUM(CAST(stroke AS INT)) AS stroke_cases,
+    ROUND(100.0 * SUM(CAST(stroke AS INT)) / COUNT(*), 2) AS stroke_rate_percent
+FROM stroke_data
+GROUP BY smoking_status;
+
+-- 7. What is the stroke rate among patients with hypertension vs. those without?
+SELECT 
+    hypertension,
+    COUNT(*) AS total,
+    SUM(CAST(stroke AS INT)) AS stroke_cases,
+    ROUND(100.0 * SUM(CAST(stroke AS INT)) / COUNT(*), 2) AS stroke_rate_percent
+FROM stroke_data
+GROUP BY hypertension;
+
+-- 8. Compare the average glucose levels and BMI between stroke and non-stroke patients.
+SELECT 
+    stroke,
+    ROUND(AVG(avg_glucose_level), 2) AS avg_glucose,
+    ROUND(AVG(TRY_CAST(bmi AS FLOAT)), 2) AS avg_bmi
+FROM stroke_data
+GROUP BY stroke;
+
+-- 9. Which age group has the highest stroke incidence?
+SELECT 
+    age_group,
+    COUNT(*) AS total,
+    SUM(CAST(stroke AS INT)) AS stroke_cases,
+    ROUND(100.0 * SUM(CAST(stroke AS INT)) / COUNT(*), 2) AS stroke_rate_percent
+FROM (
+    SELECT *,
+        CASE 
+            WHEN age BETWEEN 0 AND 18 THEN '0-18'
+            WHEN age BETWEEN 19 AND 35 THEN '19-35'
+            WHEN age BETWEEN 36 AND 50 THEN '36-50'
+            WHEN age BETWEEN 51 AND 65 THEN '51-65'
+            ELSE '66+' 
+        END AS age_group
+    FROM stroke_data
+) AS grouped
+GROUP BY age_group;
+
+-- 10. Are people who are married more or less likely to have a stroke?
+SELECT 
+    ever_married,
+    COUNT(*) AS total,
+    SUM(CAST(stroke AS INT)) AS stroke_cases,
+    ROUND(100.0 * SUM(CAST(stroke AS INT)) / COUNT(*), 2) AS stroke_rate_percent
+FROM stroke_data
+GROUP BY ever_married;
+
+-- Advanced Insights & Aggregations
+
+-- 11. Top 5 highest average glucose levels among stroke patients
+SELECT TOP 5 *
+FROM stroke_data
+WHERE stroke = 1
+ORDER BY avg_glucose_level DESC;
+
+-- 12. Most common combination of risk factors among stroke patients
+SELECT 
+    hypertension, heart_disease, smoking_status,
+    COUNT(*) AS patient_count
+FROM stroke_data
+WHERE stroke = 1
+GROUP BY hypertension, heart_disease, smoking_status
+ORDER BY patient_count DESC;
+
+-- 13. Which combination of gender and work type shows the highest stroke rate?
+SELECT 
+    gender, work_type,
+    COUNT(*) AS total,
+    SUM(CAST(stroke AS INT)) AS stroke_cases,
+    ROUND(100.0 * SUM(CAST(stroke AS INT)) / COUNT(*), 2) AS stroke_rate_percent
+FROM stroke_data
+GROUP BY gender, work_type;
+
+-- Backup Table (Optional)
+SELECT * 
+INTO stroke_copy
+FROM stroke_data;
